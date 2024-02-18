@@ -5,10 +5,14 @@ import numpy as np
 def read_data(data):
     df = pd.read_csv(data)
     x = df[["LotArea", "BedroomAbvGr", "FullBath"]]
-    x = np.array(x)
     y = df["SalePrice"]
     y = np.array(y)
     return x, y
+
+def normalise(df):
+    normalized_df = (df-df.min())/(df.max()-df.min())
+    x = np.array(normalized_df)
+    return x
 
 def multivariate_regression(x, w, b): 
     reg = np.dot(x, w) + b     
@@ -109,8 +113,9 @@ if __name__ == "__main__":
     data = sys.argv[1]
     x = np.array([1, 1, 1])
     w = np.array([2, 2, 2])
-    print(read_data(data))
-    print(multivariate_regression(x, w, 1))
+    x , y = read_data(data)
+    print(normalise(x))
+    #print(multivariate_regression(x, w, 1))
 
     '''# initialize parameters
     initial_w = np.zeros_like(w_init)
