@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import numpy as np
+import math
 
 def read_data(data):
     df = pd.read_csv(data)
@@ -65,7 +66,7 @@ def compute_gradient(X, y, w, b):
         
     return dj_db, dj_dw
 
-def gradient_descent(X, y, w_in, b_in, cost_function, gradient_function, alpha, num_iters): 
+def gradient_descent(X, y, w_in, b_in, alpha, num_iters): 
     """
     Performs batch gradient descent to learn w and b. Updates w and b by taking 
     num_iters gradient steps with learning rate alpha
@@ -87,22 +88,18 @@ def gradient_descent(X, y, w_in, b_in, cost_function, gradient_function, alpha, 
     
     # An array to store cost J and w's at each iteration primarily for graphing later
     J_history = []
-    w = copy.deepcopy(w_in)  #avoid modifying global w within function
+    w = w_in  #avoid modifying global w within function
     b = b_in
     
     for i in range(num_iters):
-
         # Calculate the gradient and update the parameters
-        dj_db,dj_dw = gradient_function(X, y, w, b)   ##None
-
+        dj_db,dj_dw = compute_gradient(X, y, w, b)
         # Update Parameters using w, b, alpha and gradient
-        w = w - alpha * dj_dw               ##None
-        b = b - alpha * dj_db               ##None
-      
+        w = w - alpha * dj_dw
+        b = b - alpha * dj_db
         # Save cost J at each iteration
         if i<100000:      # prevent resource exhaustion 
             J_history.append( cost_function(X, y, w, b))
-
         # Print cost every at intervals 10 times or as many iterations if < 10
         if i% math.ceil(num_iters / 10) == 0:
             print(f"Iteration {i:4d}: Cost {J_history[-1]:8.2f}   ")
@@ -113,22 +110,21 @@ if __name__ == "__main__":
     data = sys.argv[1]
     x = np.array([1, 1, 1])
     w = np.array([2, 2, 2])
-    x , y = read_data(data)
-    print(normalise(x))
+    x , y_train = read_data(data)
+    x_train_scaled = normalise(x)
     #print(multivariate_regression(x, w, 1))
 
-    '''# initialize parameters
-    initial_w = np.zeros_like(w_init)
-    initial_b = 0.
-    # some gradient descent settings
+    # initialize parameters
+    init_w = np.random.rand(3)
+    init_b = 0
+    # gradient descent settings
     iterations = 1000
     alpha = 5.0e-7
     # run gradient descent 
-    w_final, b_final, J_hist = gradient_descent(X_train, y_train, initial_w, initial_b,
-                                                        compute_cost, compute_gradient, 
-                                                        alpha, iterations)
+    w_final, b_final, J_hist = gradient_descent(x_train_scaled, y_train, init_w, init_b, alpha, iterations)
+    
     print(f"b,w found by gradient descent: {b_final:0.2f},{w_final} ")
-    m,_ = X_train.shape
+    m,_ = x_train_scaled.shape
     for i in range(m):
-        print(f"prediction: {np.dot(X_train[i], w_final) + b_final:0.2f}, target value: {y_train[i]}")  
-    '''
+        print(f"prediction: {np.dot(x_train_scaled[i], w_final) + b_final:0.2f}, target value: {y_train[i]}")  
+    
