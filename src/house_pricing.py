@@ -2,22 +2,30 @@ import sys
 import pandas as pd
 import numpy as np
 import math
+import os
 
 def read_data(data, mode):
   df = pd.read_csv(data)
-  x_temp = df[["Id", "LotArea", "BedroomAbvGr", "FullBath"]]
-  x = df[["LotArea", "BedroomAbvGr", "FullBath"]]
-  df_dict = x_temp.to_dict()
+  x_test = df[["Id", "LotArea", "BedroomAbvGr", "FullBath"]]
+  df_dict = x_test.set_index('Id').agg(list,1).to_dict()
+  x_train = df[["LotArea", "BedroomAbvGr", "FullBath"]]
   if mode == "train":
     y = df["SalePrice"]
     y = np.array(y)
-    return x, y
-  return x, df_dict
+    return x_train, y
+  elif mode == "estimate":
+    return x_test, df_dict
 
 def normalise(df):
-  normalized_df = (df-df.min())/(df.max()-df.min())
+  normalized_df = df / df.max()
   x = np.array(normalized_df)
   return x
+
+def normalize_test_features(x, max_vals):
+  normalised_features = []
+  for i in range(len(x)):
+    normalised_features.append(x[i] / max_vals[i])
+  return normalised_features
 
 def multivariate_regression(x, w, b): 
   reg = np.dot(x, w) + b     
@@ -44,6 +52,7 @@ def cost_function(X, y, w, b):
   return cost
 
 def compute_gradient(X, y, w, b): 
+  print(X)
   """
   Computes the gradient for linear regression 
   Args:
@@ -88,7 +97,7 @@ def gradient_descent(X, y, w_in, b_in, alpha, num_iters):
     b (scalar)       : Updated value of parameter 
     """
     
-    # An array to store cost J and w's at each iteration primarily for graphing later
+  # An array to store cost J and w's at each iteration primarily for graphing later
   J_history = []
   w = w_in  #avoid modifying global w within function
   b = b_in
@@ -104,9 +113,26 @@ def gradient_descent(X, y, w_in, b_in, alpha, num_iters):
           J_history.append( cost_function(X, y, w, b))
       # Print cost every at intervals 10 times or as many iterations if < 10
       if i% math.ceil(num_iters / 10) == 0:
-          print(f"Iteration {i:4d}: Cost {J_history[-1]:8.2f}   ")
-        
+          print(f"Iteration {i:4d}: Cost {J_history[-1]:8.2f}   ")      
   return w, b, J_history #return final w,b and J history for graphing
+
+def write_output(result):
+  path = "output"
+  is_exist = os.path.exists(path)
+  if is_exist == False:
+    os.makedirs(path)
+  
+  if os.path.exists("output/output.txt") == False:
+    file = open("output/output.txt", "a")
+    file.write("Id,SalePrice\n")
+    for id in result:
+      file.write("{},{}\n".format(id, result[id]))
+  else:
+    os.remove("output/output.txt")
+    file = open("output/output.txt", "a")
+    file.write("Id,SalePrice\n")
+    for id in result:
+      file.write("{},{}\n".format(id, result[id]))
 
 if __name__ == "__main__":
   # TRAINING
@@ -118,8 +144,8 @@ if __name__ == "__main__":
   init_w = np.random.rand(3)
   init_b = 0
   # gradient descent settings
-  iterations = 1000
-  # alpha = .0e-7
+  iterations = 10000
+  # alpha = 5.0e-7
   alpha = 0.1
   # run gradient descent 
   w_final, b_final, J_hist = gradient_descent(x_train_scaled, y_train, init_w, init_b, alpha, iterations)
@@ -128,13 +154,24 @@ if __name__ == "__main__":
   m,_ = x_train_scaled.shape
   for i in range(m):
     print(f"prediction: {np.dot(x_train_scaled[i], w_final) + b_final:0.2f}, target value: {y_train[i]}")  
-    if i > 10:
+    if i > 100:
       break
 
-# ESTIMATION
-test = sys.argv[2]
-x_test, df_dict = read_data(test, "estimate")
-print(df_dict)
-x_test_scaled = normalise(x_train)
-'''for i in x_test_scaled:
-  print(multivariate_regression(i, w_final, b_final))'''
+  # ESTIMATION
+  test = sys.argv[2]
+  x_test, df_dict = read_data(test, "estimate")
+  temp = x_test[["LotArea", "BedroomAbvGr", "FullBath"]]
+  result = {}
+
+  # finding max_vals for each feature in the df for feature scalings
+  max_vals = []
+  for column in temp:
+    max_vals.append(temp[column].max())
+
+  for j in df_dict:
+    # scale features
+    x_test_scaled = normalize_test_features(np.array(df_dict[j]), max_vals)
+    # predict house price
+    result[j] = multivariate_regression(x_test_scaled, w_final, b_final)
+  
+  write_output(result)
