@@ -17,11 +17,11 @@ def read_data(data, mode):
     return x_test, df_dict
 
 def normalise(df):
-  normalized_df = df / df.max()
-  x = np.array(normalized_df)
+  normalised_df = df / df.max()
+  x = np.array(normalised_df)
   return x
 
-def normalize_test_features(x, max_vals):
+def normalise_test_features(x, max_vals):
   normalised_features = []
   for i in range(len(x)):
     normalised_features.append(x[i] / max_vals[i])
@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
   for j in df_dict:
     # scale features
-    x_test_scaled = normalize_test_features(np.array(df_dict[j]), max_vals)
+    x_test_scaled = normalise_test_features(np.array(df_dict[j]), max_vals)
     # predict house price
     result[j] = multivariate_regression(x_test_scaled, w_final, b_final)
   
